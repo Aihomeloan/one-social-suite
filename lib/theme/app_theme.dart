@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// 1SocialSuite brand theme — black & gold. LOCKED palette.
-/// Gold #FFB800 on near-black, matching the orbiting-1 logo.
+/// 1SocialSuite brand theme — black & gold.
+/// Gold values sampled directly from the logo art for an exact match.
 class AppColors {
   AppColors._();
 
   static const Color black = Color(0xFF000000);
   static const Color surface = Color(0xFF141414);
   static const Color surfaceAlt = Color(0xFF1A1A1A);
-  static const Color gold = Color(0xFFFFB800);
-  static const Color goldDeep = Color(0xFFE89611);
-  static const Color goldGlow = Color(0xFFFFD166);
+  static const Color gold = Color(0xFFF5CC1F);      // logo body gold
+  static const Color goldDeep = Color(0xFFD5990C);  // logo shadow gold
+  static const Color goldGlow = Color(0xFFFDE42E);  // logo highlight gold
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textMuted = Color(0xFF9E9E9E);
-  static const Color border = Color(0x33FFB800); // gold @ 20%
+  static const Color border = Color(0x33F5CC1F);    // gold @ 20%
 }
 
 class AppTheme {
