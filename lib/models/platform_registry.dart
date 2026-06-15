@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'platform_def.dart';
 
 /// The canonical v1 set of 8 platforms, in mockup display order.
-/// Uses built-in Material icons (zero external deps). Brand glyphs for
-/// platforms Material lacks (X, TikTok, Nextdoor, Snapchat).
 class PlatformRegistry {
   PlatformRegistry._();
 
@@ -12,6 +10,7 @@ class PlatformRegistry {
       id: 'instagram',
       name: 'Instagram',
       shareMode: ShareMode.shareSheet,
+      charLimit: 2200,
       icon: Icons.camera_alt_outlined,
       deepLinkScheme: 'instagram://',
     ),
@@ -19,6 +18,7 @@ class PlatformRegistry {
       id: 'x',
       name: 'X',
       shareMode: ShareMode.shareSheet,
+      charLimit: 280,
       glyph: 'X',
       deepLinkScheme: 'twitter://',
     ),
@@ -26,6 +26,7 @@ class PlatformRegistry {
       id: 'pinterest',
       name: 'Pinterest',
       shareMode: ShareMode.shareSheet,
+      charLimit: 500,
       icon: Icons.push_pin_outlined,
       deepLinkScheme: 'pinterest://',
     ),
@@ -33,6 +34,7 @@ class PlatformRegistry {
       id: 'nextdoor',
       name: 'Nextdoor',
       shareMode: ShareMode.openAndCopy,
+      charLimit: 1000,
       glyph: 'n',
       deepLinkScheme: 'nextdoor://',
     ),
@@ -40,6 +42,7 @@ class PlatformRegistry {
       id: 'snapchat',
       name: 'Snapchat',
       shareMode: ShareMode.openAndCopy,
+      charLimit: 250,
       glyph: '👻',
       deepLinkScheme: 'snapchat://',
     ),
@@ -47,6 +50,7 @@ class PlatformRegistry {
       id: 'tiktok',
       name: 'TikTok',
       shareMode: ShareMode.shareSheet,
+      charLimit: 2200,
       icon: Icons.music_note,
       deepLinkScheme: 'tiktok://',
     ),
@@ -54,6 +58,7 @@ class PlatformRegistry {
       id: 'linkedin',
       name: 'LinkedIn',
       shareMode: ShareMode.shareSheet,
+      charLimit: 3000,
       glyph: 'in',
       deepLinkScheme: 'linkedin://',
     ),
@@ -61,10 +66,18 @@ class PlatformRegistry {
       id: 'facebook',
       name: 'Facebook',
       shareMode: ShareMode.shareSheet,
+      charLimit: 63206,
       icon: Icons.facebook,
       deepLinkScheme: 'fb://',
     ),
   ];
 
   static int get count => all.length;
+
+  static PlatformDef? byId(String id) {
+    for (final PlatformDef p in all) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
 }

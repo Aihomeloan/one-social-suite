@@ -20,7 +20,7 @@ on-device. Never claim "Posted" — use Prepared / Opened in app /
 Shared via system sheet / Saved as draft.
 
 ## Brand
-Gold #FFB800 on black. Logo = gold orbiting "1" + blue globe. Logo + icons LOCKED.
+Gold #F5CC1F on black. Logo = gold orbiting "1" + blue globe. Logo + icons LOCKED.
 
 ## Environment
 Mac M1 primary (iOS+Android), project on external APFS DevDrive at

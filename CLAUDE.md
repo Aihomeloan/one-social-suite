@@ -7,7 +7,7 @@
 - Package: one_social_suite
 - Bundle / applicationId: com.stevenfischer.onesocialsuite
 - Tagline: Write once. Share smarter.
-- Brand: black + gold (#FFB800). Logo = gold orbiting "1" + blue globe. LOCKED.
+- Brand: black + gold (#F5CC1F). Logo = gold orbiting "1" + blue globe. LOCKED.
 
 ## Product in one sentence
 A private social command center: write once, shape the message per platform,
