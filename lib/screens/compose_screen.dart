@@ -7,6 +7,7 @@ import '../models/platform_suggestion.dart';
 import '../models/post_draft.dart';
 import '../models/tone.dart';
 import '../services/platform_suggester.dart';
+import 'preview_screen.dart';
 import '../theme/app_theme.dart';
 
 class ComposeScreen extends StatefulWidget {
@@ -113,6 +114,22 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
   void _toast(String msg) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(msg)));
+
+  void _openPreview() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PreviewScreen(
+          draft: PostDraft(
+            text: _text.text,
+            selectedPlatformIds: _selected,
+            tone: _tone,
+            mediaPath: _mediaPath,
+            isVideo: _isVideo,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -267,8 +284,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
                     child: ElevatedButton(
                       onPressed: _selected.isEmpty
                           ? null
-                          : () => _toast(
-                              'Per-platform previews arrive in Session 4.'),
+                          : _openPreview,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.gold,
                         disabledBackgroundColor:
