@@ -4,10 +4,9 @@ import '../models/platform_def.dart';
 import '../models/platform_registry.dart';
 import '../models/post_draft.dart';
 import '../services/caption_formatter.dart';
+import '../services/share_service.dart';
 import '../theme/app_theme.dart';
 
-/// Polished swipeable preview: one platform per page. Tap to edit each
-/// caption; edits persist while you swipe (regenerate on re-entry).
 class PreviewScreen extends StatefulWidget {
   const PreviewScreen({super.key, required this.draft});
 
@@ -19,6 +18,7 @@ class PreviewScreen extends StatefulWidget {
 
 class _PreviewScreenState extends State<PreviewScreen> {
   static const CaptionFormatter _formatter = RulesCaptionFormatter();
+  static const ShareService _share = ShareService();
   static const Color _warn = Color(0xFFFF8A3D);
 
   final PageController _page = PageController();
@@ -26,6 +26,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   late final List<String> _formatted;
   late final List<TextEditingController> _controllers;
   int _index = 0;
+  bool _busy = false;
 
   @override
   void initState() {
@@ -36,9 +37,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
     _formatted = _platforms
         .map((p) => _formatter.format(widget.draft.text, p, widget.draft.tone))
         .toList();
-    _controllers = _formatted
-        .map((String c) => TextEditingController(text: c))
-        .toList();
+    _controllers =
+        _formatted.map((String c) => TextEditingController(text: c)).toList();
   }
 
   @override
@@ -52,17 +52,56 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   void _dismissKeyboard() => FocusScope.of(context).unfocus();
 
-  void _resetCurrent() {
-    setState(() {
-      _controllers[_index].text = _formatted[_index];
-    });
-  }
+  void _resetCurrent() =>
+      setState(() => _controllers[_index].text = _formatted[_index]);
 
   void _copyCurrent() {
     Clipboard.setData(ClipboardData(text: _controllers[_index].text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${_platforms[_index].name} caption copied')),
+    _snack('${_platforms[_index].name} caption copied');
+  }
+
+  void _snack(String msg) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(msg)));
+
+  String _outcomeMessage(PlatformDef p, ShareOutcome o) {
+    switch (o) {
+      case ShareOutcome.sharedViaSheet:
+        return '${p.name}: share sheet opened';
+      case ShareOutcome.copiedAndOpened:
+        return '${p.name}: caption copied, paste to post';
+      case ShareOutcome.appNotFound:
+        return '${p.name} not installed, caption copied';
+      case ShareOutcome.failed:
+        return '${p.name}: could not share';
+    }
+  }
+
+  Future<void> _shareOne(int i) async {
+    _dismissKeyboard();
+    final PlatformDef p = _platforms[i];
+    final ShareOutcome o = await _share.shareToPlatform(
+      platform: p,
+      caption: _controllers[i].text,
+      mediaPath: widget.draft.mediaPath,
     );
+    if (!mounted) return;
+    _snack(_outcomeMessage(p, o));
+  }
+
+  Future<void> _shareAll() async {
+    _dismissKeyboard();
+    setState(() => _busy = true);
+    for (int i = 0; i < _platforms.length; i++) {
+      final PlatformDef p = _platforms[i];
+      final ShareOutcome o = await _share.shareToPlatform(
+        platform: p,
+        caption: _controllers[i].text,
+        mediaPath: widget.draft.mediaPath,
+      );
+      if (!mounted) return;
+      _snack(_outcomeMessage(p, o));
+    }
+    if (mounted) setState(() => _busy = false);
   }
 
   @override
@@ -114,7 +153,42 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 itemBuilder: (BuildContext context, int i) => _card(i),
               ),
             ),
+            _shareAllBar(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _shareAllBar() {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _busy ? null : _shareAll,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.gold,
+              disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.4),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            icon: _busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.black),
+                  )
+                : const Icon(Icons.rocket_launch,
+                    color: Colors.black, size: 20),
+            label: Text(
+              _busy ? 'Sharing...' : 'Share All (${_platforms.length})',
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.bold),
+            ),
+          ),
         ),
       ),
     );
@@ -232,7 +306,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 Text(
                   fits
                       ? '$len / ${p.charLimit}'
-                      : '$len / ${p.charLimit} — over limit',
+                      : '$len / ${p.charLimit} over limit',
                   style: TextStyle(
                     color: fits ? AppColors.textMuted : _warn,
                     fontSize: 13,
@@ -266,12 +340,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () =>
-                        ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Share handoff arrives in Session 6.')),
-                    ),
+                    onPressed: _busy ? null : () => _shareOne(i),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.gold,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -290,7 +359,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             Center(
               child: Text(
                 i < _platforms.length - 1
-                    ? 'Swipe for ${_platforms[i + 1].name}  →'
+                    ? 'Swipe for ${_platforms[i + 1].name}'
                     : 'Last platform',
                 style: const TextStyle(
                     color: AppColors.textMuted, fontSize: 12),
