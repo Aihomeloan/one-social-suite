@@ -23,7 +23,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   final PageController _page = PageController();
   late final List<PlatformDef> _platforms;
-  late final List<String> _formatted; // original auto versions
+  late final List<String> _formatted;
   late final List<TextEditingController> _controllers;
   int _index = 0;
 
@@ -49,6 +49,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
     super.dispose();
   }
+
+  void _dismissKeyboard() => FocusScope.of(context).unfocus();
 
   void _resetCurrent() {
     setState(() {
@@ -80,25 +82,40 @@ class _PreviewScreenState extends State<PreviewScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.black,
-      appBar: AppBar(
-        title: Text('Preview  ${_index + 1} of ${_platforms.length}'),
+    return GestureDetector(
+      onTap: _dismissKeyboard,
+      child: Scaffold(
         backgroundColor: AppColors.black,
-        foregroundColor: AppColors.gold,
-      ),
-      body: Column(
-        children: <Widget>[
-          _dots(),
-          Expanded(
-            child: PageView.builder(
-              controller: _page,
-              itemCount: _platforms.length,
-              onPageChanged: (int i) => setState(() => _index = i),
-              itemBuilder: (BuildContext context, int i) => _card(i),
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          title: Text('Preview  ${_index + 1} of ${_platforms.length}'),
+          backgroundColor: AppColors.black,
+          foregroundColor: AppColors.gold,
+          actions: <Widget>[
+            TextButton(
+              onPressed: _dismissKeyboard,
+              child: const Text('Done',
+                  style: TextStyle(
+                      color: AppColors.gold, fontWeight: FontWeight.bold)),
             ),
-          ),
-        ],
+          ],
+        ),
+        body: Column(
+          children: <Widget>[
+            _dots(),
+            Expanded(
+              child: PageView.builder(
+                controller: _page,
+                itemCount: _platforms.length,
+                onPageChanged: (int i) => setState(() {
+                  _dismissKeyboard();
+                  _index = i;
+                }),
+                itemBuilder: (BuildContext context, int i) => _card(i),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -150,7 +167,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // Header
             Row(
               children: <Widget>[
                 _icon(p),
@@ -165,8 +181,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: AppColors.black,
                     borderRadius: BorderRadius.circular(12),
@@ -184,7 +200,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // Editable caption
             Container(
               decoration: BoxDecoration(
                 color: AppColors.black,
@@ -196,6 +211,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 controller: ctrl,
                 maxLines: null,
                 minLines: 4,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
                 onChanged: (_) => setState(() {}),
                 style: const TextStyle(
                     color: Colors.white, fontSize: 15, height: 1.4),
@@ -204,7 +221,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            // Char meter + reset
             Row(
               children: <Widget>[
                 Icon(
@@ -232,7 +248,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
               ],
             ),
             const SizedBox(height: 14),
-            // Actions
             Row(
               children: <Widget>[
                 Expanded(
