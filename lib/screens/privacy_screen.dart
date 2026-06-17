@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/app_lock_service.dart';
 
 /// Privacy Dashboard - 1SocialSuite's privacy promise made visible.
 /// Wording is honest and matches what we can actually claim.
@@ -14,8 +15,8 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   // Local-only toggles for v1. Wired to real services in later sessions:
   //   Face ID -> Session 8 (AppLockService)
   //   Analytics -> always off in v1 (privacy-first)
-  bool _faceIdEnabled = false;
-  int _lockTimeoutMinutes = 5;
+  bool _faceIdEnabled = AppLockService.instance.isEnabled;
+  int _lockTimeoutMinutes = AppLockService.instance.timeoutMinutes;
 
   @override
   Widget build(BuildContext context) {
@@ -109,13 +110,10 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                     ? 'Required to open 1SocialSuite'
                     : 'Tap to require Face ID on app open',
                 value: _faceIdEnabled,
-                onChanged: (bool v) {
+                onChanged: (bool v) async {
+                  await AppLockService.instance.setEnabled(v);
+                  if (!mounted) return;
                   setState(() => _faceIdEnabled = v);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Face ID will wire up in Session 8 (the lock).')),
-                  );
                 },
               ),
               if (_faceIdEnabled) ...<Widget>[
@@ -341,8 +339,11 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                         color: selected ? Colors.black : Colors.white,
                         fontWeight: FontWeight.w600)),
                 selected: selected,
-                onSelected: (_) =>
-                    setState(() => _lockTimeoutMinutes = m),
+                onSelected: (_) async {
+                  await AppLockService.instance.setTimeout(m);
+                  if (!mounted) return;
+                  setState(() => _lockTimeoutMinutes = m);
+                },
                 backgroundColor: AppColors.black,
                 selectedColor: AppColors.gold,
                 side: BorderSide(

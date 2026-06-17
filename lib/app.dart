@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
-import 'screens/home_shell.dart';
+import 'screens/splash_screen.dart';
+import 'screens/lock_gate.dart';
 
 class OneSocialSuiteApp extends StatelessWidget {
   const OneSocialSuiteApp({super.key});
@@ -11,7 +12,7 @@ class OneSocialSuiteApp extends StatelessWidget {
       title: '1SocialSuite',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: const HomeShell(),
+      home: const LockGate(child: SplashScreen()),
     );
   }
 }
