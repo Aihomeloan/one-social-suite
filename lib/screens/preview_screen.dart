@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../models/history_entry.dart';
 import '../models/platform_def.dart';
 import '../models/platform_registry.dart';
 import '../models/post_draft.dart';
 import '../services/caption_formatter.dart';
-import '../models/history_entry.dart';
 import '../services/storage_service.dart';
 import '../services/share_service.dart';
 import '../theme/app_theme.dart';
@@ -24,29 +24,44 @@ class _PreviewScreenState extends State<PreviewScreen> {
   static const Color _warn = Color(0xFFFF8A3D);
 
   final PageController _page = PageController();
-  late final List<PlatformDef> _platforms;
-  late final List<String> _formatted;
-  late final List<TextEditingController> _controllers;
+
+  // Live, editable selection (starts from the incoming draft).
+  late Set<String> _selectedIds;
+  // Per-platform edited captions, keyed by platform id so edits survive
+  // toggling platforms on/off.
+  final Map<String, TextEditingController> _controllers =
+      <String, TextEditingController>{};
+
   int _index = 0;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
-    _platforms = PlatformRegistry.all
-        .where((p) => widget.draft.selectedPlatformIds.contains(p.id))
-        .toList();
-    _formatted = _platforms
-        .map((p) => _formatter.format(widget.draft.text, p, widget.draft.tone))
-        .toList();
-    _controllers =
-        _formatted.map((String c) => TextEditingController(text: c)).toList();
+    _selectedIds = widget.draft.selectedPlatformIds.toSet();
+    _syncControllers();
+  }
+
+  List<PlatformDef> get _platforms => PlatformRegistry.all
+      .where((p) => _selectedIds.contains(p.id))
+      .toList();
+
+  String _formattedFor(PlatformDef p) =>
+      _formatter.format(widget.draft.text, p, widget.draft.tone);
+
+  void _syncControllers() {
+    for (final PlatformDef p in PlatformRegistry.all) {
+      if (_selectedIds.contains(p.id)) {
+        _controllers.putIfAbsent(
+            p.id, () => TextEditingController(text: _formattedFor(p)));
+      }
+    }
   }
 
   @override
   void dispose() {
     _page.dispose();
-    for (final TextEditingController c in _controllers) {
+    for (final TextEditingController c in _controllers.values) {
       c.dispose();
     }
     super.dispose();
@@ -54,12 +69,29 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   void _dismissKeyboard() => FocusScope.of(context).unfocus();
 
-  void _resetCurrent() =>
-      setState(() => _controllers[_index].text = _formatted[_index]);
+  void _toggle(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+      _syncControllers();
+      if (_index >= _platforms.length) {
+        _index = _platforms.isEmpty ? 0 : _platforms.length - 1;
+      }
+    });
+  }
+
+  void _resetCurrent() {
+    final PlatformDef p = _platforms[_index];
+    setState(() => _controllers[p.id]!.text = _formattedFor(p));
+  }
 
   void _copyCurrent() {
-    Clipboard.setData(ClipboardData(text: _controllers[_index].text));
-    _snack('${_platforms[_index].name} caption copied');
+    final PlatformDef p = _platforms[_index];
+    Clipboard.setData(ClipboardData(text: _controllers[p.id]!.text));
+    _snack('${p.name} caption copied');
   }
 
   void _snack(String msg) => ScaffoldMessenger.of(context)
@@ -77,7 +109,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       id: DateTime.now().microsecondsSinceEpoch.toString() + p.id,
       platformId: p.id,
       platformName: p.name,
-      caption: _controllers[_platforms.indexOf(p)].text,
+      caption: _controllers[p.id]?.text ?? '',
       status: status,
       hadMedia: widget.draft.mediaPath != null,
       sharedAt: DateTime.now(),
@@ -97,12 +129,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
-  Future<void> _shareOne(int i) async {
+  Future<void> _shareOne(PlatformDef p) async {
     _dismissKeyboard();
-    final PlatformDef p = _platforms[i];
     final ShareOutcome o = await _share.shareToPlatform(
       platform: p,
-      caption: _controllers[i].text,
+      caption: _controllers[p.id]!.text,
       mediaPath: widget.draft.mediaPath,
     );
     await _logShare(p, o);
@@ -113,11 +144,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Future<void> _shareAll() async {
     _dismissKeyboard();
     setState(() => _busy = true);
-    for (int i = 0; i < _platforms.length; i++) {
-      final PlatformDef p = _platforms[i];
+    for (final PlatformDef p in _platforms) {
       final ShareOutcome o = await _share.shareToPlatform(
         platform: p,
-        caption: _controllers[i].text,
+        caption: _controllers[p.id]!.text,
         mediaPath: widget.draft.mediaPath,
       );
       await _logShare(p, o);
@@ -129,20 +159,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_platforms.isEmpty) {
-      return Scaffold(
-        backgroundColor: AppColors.black,
-        appBar: AppBar(
-          title: const Text('Preview'),
-          backgroundColor: AppColors.black,
-          foregroundColor: AppColors.gold,
-        ),
-        body: const Center(
-          child: Text('No platforms selected.',
-              style: TextStyle(color: AppColors.textMuted)),
-        ),
-      );
-    }
+    final List<PlatformDef> platforms = _platforms;
 
     return GestureDetector(
       onTap: _dismissKeyboard,
@@ -150,7 +167,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
         backgroundColor: AppColors.black,
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-          title: Text('Preview  ${_index + 1} of ${_platforms.length}'),
+          title: Text(platforms.isEmpty
+              ? 'Preview'
+              : 'Preview  ${_index + 1} of ${platforms.length}'),
           backgroundColor: AppColors.black,
           foregroundColor: AppColors.gold,
           actions: <Widget>[
@@ -164,26 +183,111 @@ class _PreviewScreenState extends State<PreviewScreen> {
         ),
         body: Column(
           children: <Widget>[
-            _dots(),
-            Expanded(
-              child: PageView.builder(
-                controller: _page,
-                itemCount: _platforms.length,
-                onPageChanged: (int i) => setState(() {
-                  _dismissKeyboard();
-                  _index = i;
-                }),
-                itemBuilder: (BuildContext context, int i) => _card(i),
+            _platformChips(),
+            if (platforms.isEmpty)
+              Expanded(child: _emptyState())
+            else ...<Widget>[
+              _dots(platforms),
+              Expanded(
+                child: PageView.builder(
+                  controller: _page,
+                  itemCount: platforms.length,
+                  onPageChanged: (int i) => setState(() {
+                    _dismissKeyboard();
+                    _index = i;
+                  }),
+                  itemBuilder: (BuildContext context, int i) =>
+                      _card(platforms[i]),
+                ),
               ),
-            ),
-            _shareAllBar(),
+              _shareAllBar(platforms.length),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _shareAllBar() {
+  Widget _platformChips() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Text('Share to',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: PlatformRegistry.all.map((p) {
+              final bool on = _selectedIds.contains(p.id);
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _toggle(p.id),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: on
+                          ? AppColors.gold.withValues(alpha: 0.16)
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: on ? AppColors.gold : AppColors.border,
+                          width: on ? 1.5 : 1),
+                    ),
+                    child: Text(p.name,
+                        style: TextStyle(
+                            color: on ? AppColors.gold : Colors.white,
+                            fontSize: 13,
+                            fontWeight:
+                                on ? FontWeight.w700 : FontWeight.w400)),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const <Widget>[
+            Icon(Icons.hub_outlined, color: AppColors.gold, size: 48),
+            SizedBox(height: 16),
+            Text('Pick at least one platform',
+                style: TextStyle(
+                    color: AppColors.gold,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text(
+              'Tap a platform above to see your message shaped for it and share.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: AppColors.textMuted, fontSize: 14, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _shareAllBar(int count) {
     return SafeArea(
       top: false,
       child: Padding(
@@ -207,7 +311,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 : const Icon(Icons.rocket_launch,
                     color: Colors.black, size: 20),
             label: Text(
-              _busy ? 'Sharing...' : 'Share All (${_platforms.length})',
+              _busy ? 'Sharing...' : 'Share All ($count)',
               style: const TextStyle(
                   color: Colors.black, fontWeight: FontWeight.bold),
             ),
@@ -217,12 +321,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  Widget _dots() {
+  Widget _dots(List<PlatformDef> platforms) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: List<Widget>.generate(_platforms.length, (int i) {
+        children: List<Widget>.generate(platforms.length, (int i) {
           final bool active = i == _index;
           return AnimatedContainer(
             duration: const Duration(milliseconds: 200),
@@ -239,9 +343,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  Widget _card(int i) {
-    final PlatformDef p = _platforms[i];
-    final TextEditingController ctrl = _controllers[i];
+  Widget _card(PlatformDef p) {
+    final TextEditingController ctrl = _controllers[p.id]!;
     final int len = ctrl.text.length;
     final bool fits = len <= p.charLimit;
 
@@ -336,7 +439,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                   ),
                 ),
                 const Spacer(),
-                if (ctrl.text != _formatted[i])
+                if (ctrl.text != _formattedFor(p))
                   TextButton(
                     onPressed: _resetCurrent,
                     child: const Text('Reset',
@@ -363,7 +466,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _busy ? null : () => _shareOne(i),
+                    onPressed: _busy ? null : () => _shareOne(p),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.gold,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -377,16 +480,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 6),
-            Center(
-              child: Text(
-                i < _platforms.length - 1
-                    ? 'Swipe for ${_platforms[i + 1].name}'
-                    : 'Last platform',
-                style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 12),
-              ),
             ),
           ],
         ),

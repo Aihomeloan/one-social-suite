@@ -13,7 +13,9 @@ import '../services/storage_service.dart';
 import 'preview_screen.dart';
 
 class ComposeScreen extends StatefulWidget {
-  const ComposeScreen({super.key});
+  const ComposeScreen({super.key, this.initialDraft});
+
+  final Draft? initialDraft;
 
   @override
   State<ComposeScreen> createState() => _ComposeScreenState();
@@ -36,6 +38,14 @@ class _ComposeScreenState extends State<ComposeScreen> {
   void initState() {
     super.initState();
     _text.addListener(() => setState(() {}));
+    final Draft? d = widget.initialDraft;
+    if (d != null) {
+      _text.text = d.text;
+      _selected.addAll(d.selectedPlatformIds);
+      _tone = d.tone;
+      _mediaPath = d.mediaPath;
+      _isVideo = d.isVideo;
+    }
   }
 
   @override

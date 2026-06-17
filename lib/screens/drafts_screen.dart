@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/draft.dart';
 import '../models/platform_registry.dart';
-import '../models/post_draft.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
-import 'preview_screen.dart';
+import 'compose_screen.dart';
 
 class DraftsScreen extends StatefulWidget {
   const DraftsScreen({super.key});
@@ -32,20 +31,21 @@ class _DraftsScreenState extends State<DraftsScreen> {
         .showSnackBar(const SnackBar(content: Text('Draft deleted')));
   }
 
-  void _openInPreview(Draft d) {
-    Navigator.of(context).push(
+  Future<void> _openInPreview(Draft d) async {
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => PreviewScreen(
-          draft: PostDraft(
-            text: d.text,
-            selectedPlatformIds: d.selectedPlatformIds.toSet(),
-            tone: d.tone,
-            mediaPath: d.mediaPath,
-            isVideo: d.isVideo,
+        builder: (_) => Scaffold(
+          backgroundColor: const Color(0xFF000000),
+          appBar: AppBar(
+            title: const Text('Edit Draft'),
+            backgroundColor: const Color(0xFF000000),
+            foregroundColor: const Color(0xFFF5CC1F),
           ),
+          body: ComposeScreen(initialDraft: d),
         ),
       ),
     );
+    _load();
   }
 
   String _platformSummary(Draft d) {
