@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'policy_screen.dart';
 import '../services/app_lock_service.dart';
 
 /// Privacy Dashboard - 1SocialSuite's privacy promise made visible.
@@ -132,10 +133,10 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Full Privacy Policy bundles in Session 10 (store prep).')),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PolicyScreen(),
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.gold),

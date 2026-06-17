@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _controller.forward();
-    _timer = Timer(const Duration(milliseconds: 2200), _goToApp);
+    _timer = Timer(const Duration(milliseconds: 4000), _goToApp);
   }
 
   void _goToApp() {

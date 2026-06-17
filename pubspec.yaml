@@ -28,6 +28,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/privacy_policy.md
 
 flutter_launcher_icons:
   image_path: "assets/images/app_icon.png"
