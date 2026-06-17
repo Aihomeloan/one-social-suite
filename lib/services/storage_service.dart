@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/draft.dart';
+import '../models/history_entry.dart';
 
 /// Local persistence via Hive. Drafts + connection state, all on-device.
 /// No cloud, no codegen (stores plain maps). Privacy-first.
@@ -9,16 +10,19 @@ class StorageService {
 
   static const String _draftsBox = 'drafts';
   static const String _stateBox = 'app_state';
+  static const String _historyBox = 'history';
   static const String _kConnected = 'connected_platforms';
 
   late Box<dynamic> _drafts;
   late Box<dynamic> _state;
+  late Box<dynamic> _history;
 
   /// Call once at startup, before runApp.
   Future<void> init() async {
     await Hive.initFlutter();
     _drafts = await Hive.openBox<dynamic>(_draftsBox);
     _state = await Hive.openBox<dynamic>(_stateBox);
+    _history = await Hive.openBox<dynamic>(_historyBox);
   }
 
   // ---- Drafts ----
@@ -51,5 +55,23 @@ class StorageService {
 
   Future<void> setConnected(Set<String> ids) async {
     await _state.put(_kConnected, ids.toList());
+  }
+
+  // ---- Share history ----
+
+  List<HistoryEntry> getHistory() {
+    final List<HistoryEntry> out = _history.values
+        .map((v) => HistoryEntry.fromMap(v as Map<dynamic, dynamic>))
+        .toList();
+    out.sort((a, b) => b.sharedAt.compareTo(a.sharedAt));
+    return out;
+  }
+
+  Future<void> addHistory(HistoryEntry entry) async {
+    await _history.put(entry.id, entry.toMap());
+  }
+
+  Future<void> clearHistory() async {
+    await _history.clear();
   }
 }

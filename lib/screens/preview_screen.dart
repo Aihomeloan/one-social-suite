@@ -4,6 +4,8 @@ import '../models/platform_def.dart';
 import '../models/platform_registry.dart';
 import '../models/post_draft.dart';
 import '../services/caption_formatter.dart';
+import '../models/history_entry.dart';
+import '../services/storage_service.dart';
 import '../services/share_service.dart';
 import '../theme/app_theme.dart';
 
@@ -63,6 +65,25 @@ class _PreviewScreenState extends State<PreviewScreen> {
   void _snack(String msg) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(msg)));
 
+  Future<void> _logShare(PlatformDef p, ShareOutcome o) async {
+    if (o == ShareOutcome.failed) return;
+    final String status = switch (o) {
+      ShareOutcome.sharedViaSheet => 'Shared via sheet',
+      ShareOutcome.copiedAndOpened => 'Copied + opened',
+      ShareOutcome.appNotFound => 'Copied (app not found)',
+      ShareOutcome.failed => 'Prepared',
+    };
+    await StorageService.instance.addHistory(HistoryEntry(
+      id: DateTime.now().microsecondsSinceEpoch.toString() + p.id,
+      platformId: p.id,
+      platformName: p.name,
+      caption: _controllers[_platforms.indexOf(p)].text,
+      status: status,
+      hadMedia: widget.draft.mediaPath != null,
+      sharedAt: DateTime.now(),
+    ));
+  }
+
   String _outcomeMessage(PlatformDef p, ShareOutcome o) {
     switch (o) {
       case ShareOutcome.sharedViaSheet:
@@ -84,6 +105,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       caption: _controllers[i].text,
       mediaPath: widget.draft.mediaPath,
     );
+    await _logShare(p, o);
     if (!mounted) return;
     _snack(_outcomeMessage(p, o));
   }
@@ -98,6 +120,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         caption: _controllers[i].text,
         mediaPath: widget.draft.mediaPath,
       );
+      await _logShare(p, o);
       if (!mounted) return;
       _snack(_outcomeMessage(p, o));
     }

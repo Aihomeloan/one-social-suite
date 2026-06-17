@@ -17,10 +17,12 @@ class _HomeShellState extends State<HomeShell> {
 
   // Bumped when the Drafts tab is opened, to force its list to reload.
   int _draftsRefreshKey = 0;
+  int _historyRefreshKey = 0;
 
   void _onTap(int i) => setState(() {
         // Reopening the Drafts tab refreshes its saved list.
         if (i == 2) _draftsRefreshKey++;
+        if (i == 3) _historyRefreshKey++;
         _index = i;
       });
 
@@ -30,7 +32,7 @@ class _HomeShellState extends State<HomeShell> {
       const ComposeScreen(),
       const ConnectionsScreen(),
       DraftsScreen(key: ValueKey<int>(_draftsRefreshKey)),
-      const HistoryScreen(),
+      HistoryScreen(key: ValueKey<int>(_historyRefreshKey)),
       const PrivacyScreen(),
     ];
 
