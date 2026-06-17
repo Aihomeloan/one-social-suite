@@ -15,20 +15,27 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const List<Widget> _screens = <Widget>[
-    ComposeScreen(),
-    ConnectionsScreen(),
-    DraftsScreen(),
-    HistoryScreen(),
-    PrivacyScreen(),
-  ];
+  // Bumped when the Drafts tab is opened, to force its list to reload.
+  int _draftsRefreshKey = 0;
 
-  void _onTap(int i) => setState(() => _index = i);
+  void _onTap(int i) => setState(() {
+        // Reopening the Drafts tab refreshes its saved list.
+        if (i == 2) _draftsRefreshKey++;
+        _index = i;
+      });
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = <Widget>[
+      const ComposeScreen(),
+      const ConnectionsScreen(),
+      DraftsScreen(key: ValueKey<int>(_draftsRefreshKey)),
+      const HistoryScreen(),
+      const PrivacyScreen(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: IndexedStack(index: _index, children: screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         onTap: _onTap,
