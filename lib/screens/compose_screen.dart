@@ -7,8 +7,8 @@ import '../models/platform_suggestion.dart';
 import '../models/post_draft.dart';
 import '../models/tone.dart';
 import '../services/platform_suggester.dart';
-import 'preview_screen.dart';
 import '../theme/app_theme.dart';
+import 'preview_screen.dart';
 
 class ComposeScreen extends StatefulWidget {
   const ComposeScreen({super.key});
@@ -24,6 +24,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
   final TextEditingController _text = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final Set<String> _selected = <String>{};
+  final FocusNode _textFocus = FocusNode();
 
   Tone _tone = Tone.casual;
   String? _mediaPath;
@@ -38,8 +39,11 @@ class _ComposeScreenState extends State<ComposeScreen> {
   @override
   void dispose() {
     _text.dispose();
+    _textFocus.dispose();
     super.dispose();
   }
+
+  void _dismissKeyboard() => FocusScope.of(context).unfocus();
 
   int get _wordCount =>
       _text.text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
@@ -75,6 +79,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
       });
 
   Future<void> _pickMedia() async {
+    _dismissKeyboard();
     final String? choice = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -88,7 +93,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
               onTap: () => Navigator.pop(ctx, 'photo'),
             ),
             ListTile(
-              leading: const Icon(Icons.videocam_outlined, color: AppColors.gold),
+              leading:
+                  const Icon(Icons.videocam_outlined, color: AppColors.gold),
               title: const Text('Video', style: TextStyle(color: Colors.white)),
               onTap: () => Navigator.pop(ctx, 'video'),
             ),
@@ -116,6 +122,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
       .showSnackBar(SnackBar(content: Text(msg)));
 
   void _openPreview() {
+    _dismissKeyboard();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PreviewScreen(
@@ -142,162 +149,187 @@ class _ComposeScreenState extends State<ComposeScreen> {
     return Container(
       color: AppColors.black,
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _dismissKeyboard,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Center(
-                child: Text(
-                  'Compose',
-                  style: TextStyle(
-                    color: AppColors.gold,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Center(
-                child: Text(
-                  'Write once. Share smarter.',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // --- Message box ---
-              _label('Your message'),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
-                ),
-                padding: const EdgeInsets.all(14),
-                child: TextField(
-                  controller: _text,
-                  maxLines: 6,
-                  minLines: 5,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                  cursorColor: AppColors.gold,
-                  decoration: const InputDecoration.collapsed(
-                    hintText: 'Check out my new project...',
-                    hintStyle: TextStyle(color: AppColors.textMuted),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // --- Smart counter ---
-              Text(
-                '$len characters',
-                style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 13),
-              ),
-              if (selectedDefs.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: selectedDefs.map((p) {
-                    final bool fits = len <= p.charLimit;
-                    return _fitPill(p.name, fits);
-                  }).toList(),
-                ),
-              ],
-              const SizedBox(height: 22),
-
-              // --- Media ---
-              _label('Add media'),
-              const SizedBox(height: 8),
-              if (_mediaPath == null)
-                _outlineButton(
-                  icon: Icons.add_photo_alternate_outlined,
-                  text: 'Add photo / video',
-                  onTap: _pickMedia,
-                )
-              else
-                _mediaPreview(),
-              const SizedBox(height: 22),
-
-              // --- Tone ---
-              _label('Tone'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: Tone.values.map((t) {
-                  return _chip(
-                    label: t.label,
-                    selected: _tone == t,
-                    onTap: () => setState(() => _tone = t),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 22),
-
-              // --- Platforms ---
-              _label('Share to'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  _chip(
-                    label: 'All',
-                    selected: _allSelected,
-                    onTap: _toggleAll,
-                    emphasize: true,
-                  ),
-                  ...PlatformRegistry.all.map((p) => _chip(
-                        label: p.name,
-                        selected: _selected.contains(p.id),
-                        onTap: () => _toggle(p.id),
-                      )),
-                ],
-              ),
-              const SizedBox(height: 22),
-
-              // --- Smart suggestion ---
-              if (showSuggestion && !sug.isEmpty) _suggestionCard(sug),
-
-              const SizedBox(height: 24),
-
-              // --- Actions ---
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _toast('Drafts arrive in the Drafts session.'),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.gold),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Save Draft',
-                          style: TextStyle(color: AppColors.gold)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _selected.isEmpty
-                          ? null
-                          : _openPreview,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.gold,
-                        disabledBackgroundColor:
-                            AppColors.gold.withValues(alpha: 0.3),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Next  →',
+              // Keyboard "Done" bar (only while typing)
+              if (_textFocus.hasFocus)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12, top: 4),
+                    child: TextButton(
+                      onPressed: _dismissKeyboard,
+                      child: const Text('Done',
                           style: TextStyle(
-                              color: Colors.black,
+                              color: AppColors.gold,
                               fontWeight: FontWeight.bold)),
                     ),
                   ),
-                ],
+                ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const Center(
+                        child: Text(
+                          'Compose',
+                          style: TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Center(
+                        child: Text(
+                          'Write once. Share smarter.',
+                          style: TextStyle(
+                              color: AppColors.textMuted, fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      _label('Your message'),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        padding: const EdgeInsets.all(14),
+                        child: TextField(
+                          controller: _text,
+                          focusNode: _textFocus,
+                          maxLines: 6,
+                          minLines: 5,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          onTap: () => setState(() {}),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 16),
+                          cursorColor: AppColors.gold,
+                          decoration: const InputDecoration.collapsed(
+                            hintText: 'Check out my new project...',
+                            hintStyle: TextStyle(color: AppColors.textMuted),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      Text(
+                        '$len characters',
+                        style: const TextStyle(
+                            color: AppColors.textMuted, fontSize: 13),
+                      ),
+                      if (selectedDefs.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: selectedDefs.map((p) {
+                            final bool fits = len <= p.charLimit;
+                            return _fitPill(p.name, fits);
+                          }).toList(),
+                        ),
+                      ],
+                      const SizedBox(height: 22),
+
+                      _label('Add media'),
+                      const SizedBox(height: 8),
+                      if (_mediaPath == null)
+                        _outlineButton(
+                          icon: Icons.add_photo_alternate_outlined,
+                          text: 'Add photo / video',
+                          onTap: _pickMedia,
+                        )
+                      else
+                        _mediaPreview(),
+                      const SizedBox(height: 22),
+
+                      _label('Tone'),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: Tone.values.map((t) {
+                          return _chip(
+                            label: t.label,
+                            selected: _tone == t,
+                            onTap: () => setState(() => _tone = t),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 22),
+
+                      _label('Share to'),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: <Widget>[
+                          _chip(
+                            label: 'All',
+                            selected: _allSelected,
+                            onTap: _toggleAll,
+                            emphasize: true,
+                          ),
+                          ...PlatformRegistry.all.map((p) => _chip(
+                                label: p.name,
+                                selected: _selected.contains(p.id),
+                                onTap: () => _toggle(p.id),
+                              )),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
+
+                      if (showSuggestion && !sug.isEmpty) _suggestionCard(sug),
+
+                      const SizedBox(height: 24),
+
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _toast(
+                                  'Drafts arrive in the Drafts session.'),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: AppColors.gold),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: const Text('Save Draft',
+                                  style: TextStyle(color: AppColors.gold)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _selected.isEmpty ? null : _openPreview,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.gold,
+                                disabledBackgroundColor:
+                                    AppColors.gold.withValues(alpha: 0.3),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: const Text('Next',
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -305,8 +337,6 @@ class _ComposeScreenState extends State<ComposeScreen> {
       ),
     );
   }
-
-  // ---- small UI helpers ----
 
   Widget _label(String t) => Text(
         t,
@@ -326,7 +356,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
               color: fits ? AppColors.border : _warn.withValues(alpha: 0.6)),
         ),
         child: Text(
-          fits ? '✓ $name' : '⚠ $name will be trimmed',
+          fits ? 'OK $name' : '$name will be trimmed',
           style: TextStyle(
             color: fits ? AppColors.gold : _warn,
             fontSize: 12,
@@ -428,8 +458,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
                     width: 56,
                     height: 56,
                     fit: BoxFit.cover,
-                    errorBuilder: (BuildContext context, Object error, StackTrace? stack) => const Icon(
-                        Icons.broken_image, color: AppColors.textMuted),
+                    errorBuilder: (BuildContext context, Object error,
+                            StackTrace? stack) =>
+                        const Icon(Icons.broken_image,
+                            color: AppColors.textMuted),
                   ),
           ),
           const SizedBox(width: 12),
@@ -484,7 +516,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
           const SizedBox(height: 6),
           ...recs.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 3),
-                child: Text('✓ ${p.name}',
+                child: Text('- ${p.name}',
                     style: const TextStyle(
                         color: AppColors.gold,
                         fontSize: 15,
@@ -514,7 +546,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
             const SizedBox(height: 4),
             ...sug.reasons.map((r) => Padding(
                   padding: const EdgeInsets.only(top: 2),
-                  child: Text('• $r',
+                  child: Text('- $r',
                       style: const TextStyle(
                           color: AppColors.textMuted, fontSize: 13)),
                 )),
