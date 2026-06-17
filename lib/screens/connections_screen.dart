@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/platform_def.dart';
 import '../models/platform_registry.dart';
+import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/platform_card.dart';
@@ -17,6 +18,12 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
   // so connections survive an app restart.
   final Set<String> _connected = <String>{};
 
+  @override
+  void initState() {
+    super.initState();
+    _connected.addAll(StorageService.instance.getConnected());
+  }
+
   void _toggle(String id) {
     setState(() {
       if (_connected.contains(id)) {
@@ -25,6 +32,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
         _connected.add(id);
       }
     });
+    StorageService.instance.setConnected(_connected);
   }
 
   @override

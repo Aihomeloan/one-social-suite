@@ -8,6 +8,8 @@ import '../models/post_draft.dart';
 import '../models/tone.dart';
 import '../services/platform_suggester.dart';
 import '../theme/app_theme.dart';
+import '../models/draft.dart';
+import '../services/storage_service.dart';
 import 'preview_screen.dart';
 
 class ComposeScreen extends StatefulWidget {
@@ -120,6 +122,28 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
   void _toast(String msg) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _saveDraft() async {
+    _dismissKeyboard();
+    if (_text.text.trim().isEmpty) {
+      _toast('Write something first.');
+      return;
+    }
+    final DateTime now = DateTime.now();
+    final Draft d = Draft(
+      id: now.microsecondsSinceEpoch.toString(),
+      text: _text.text,
+      selectedPlatformIds: _selected.toList(),
+      tone: _tone,
+      mediaPath: _mediaPath,
+      isVideo: _isVideo,
+      createdAt: now,
+      editedAt: now,
+    );
+    await StorageService.instance.saveDraft(d);
+    if (!mounted) return;
+    _toast('Draft saved');
+  }
 
   void _openPreview() {
     _dismissKeyboard();
@@ -297,8 +321,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
                         children: <Widget>[
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => _toast(
-                                  'Drafts arrive in the Drafts session.'),
+                              onPressed: _saveDraft,
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: AppColors.gold),
                                 padding:
