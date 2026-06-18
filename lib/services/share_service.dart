@@ -49,4 +49,21 @@ class ShareService {
     }
     return ShareOutcome.appNotFound;
   }
+
+  /// Opens the plain iOS share sheet with the caption (and media), not tied
+  /// to any one platform. Lets the user send anywhere on their device.
+  Future<ShareOutcome> shareAnywhere({
+    required String caption,
+    String? mediaPath,
+  }) async {
+    try {
+      final ShareParams params = (mediaPath != null && mediaPath.isNotEmpty)
+          ? ShareParams(text: caption, files: <XFile>[XFile(mediaPath)])
+          : ShareParams(text: caption);
+      await SharePlus.instance.share(params);
+      return ShareOutcome.sharedViaSheet;
+    } catch (_) {
+      return ShareOutcome.failed;
+    }
+  }
 }

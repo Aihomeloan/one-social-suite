@@ -141,6 +141,18 @@ class _PreviewScreenState extends State<PreviewScreen> {
     _snack(_outcomeMessage(p, o));
   }
 
+  Future<void> _shareAnywhere() async {
+    _dismissKeyboard();
+    final List<PlatformDef> p = _platforms;
+    final String caption = p.isEmpty
+        ? widget.draft.text
+        : _controllers[p[_index].id]?.text ?? widget.draft.text;
+    await _share.shareAnywhere(
+      caption: caption,
+      mediaPath: widget.draft.mediaPath,
+    );
+  }
+
   Future<void> _shareAll() async {
     _dismissKeyboard();
     setState(() => _busy = true);
@@ -292,30 +304,49 @@ class _PreviewScreenState extends State<PreviewScreen> {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _busy ? null : _shareAll,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.gold,
-              disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.4),
-              padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          children: <Widget>[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _busy ? null : _shareAll,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.gold,
+                  disabledBackgroundColor:
+                      AppColors.gold.withValues(alpha: 0.4),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.black),
+                      )
+                    : const Icon(Icons.rocket_launch,
+                        color: Colors.black, size: 20),
+                label: Text(
+                  _busy ? 'Sharing...' : 'Share All ($count)',
+                  style: const TextStyle(
+                      color: Colors.black, fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
-            icon: _busy
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.black),
-                  )
-                : const Icon(Icons.rocket_launch,
-                    color: Colors.black, size: 20),
-            label: Text(
-              _busy ? 'Sharing...' : 'Share All ($count)',
-              style: const TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.bold),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : _shareAnywhere,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.gold),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: const Icon(Icons.apps, color: AppColors.gold, size: 18),
+                label: const Text('Share anywhere',
+                    style: TextStyle(color: AppColors.gold)),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
