@@ -31,6 +31,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
   final FocusNode _textFocus = FocusNode();
 
   Tone _tone = Tone.casual;
+  bool _useAi = false;
   String? _mediaPath;
   bool _isVideo = false;
 
@@ -166,6 +167,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
             tone: _tone,
             mediaPath: _mediaPath,
             isVideo: _isVideo,
+            useAi: _useAi,
           ),
         ),
       ),
@@ -302,7 +304,63 @@ class _ComposeScreenState extends State<ComposeScreen> {
                       ),
                       const SizedBox(height: 22),
 
-                      _label('Share to'),
+                      // --- AI Assist (BETA) ---
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border:
+                      Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        const Icon(Icons.auto_awesome,
+                            color: AppColors.gold, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('AI Assist',
+                            style: TextStyle(
+                                color: AppColors.gold,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.gold,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('BETA',
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: _useAi,
+                          onChanged: (bool v) => setState(() => _useAi = v),
+                          activeThumbColor: AppColors.gold,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _useAi
+                          ? 'Your text is sent to OpenAI to enhance each caption.'
+                          : 'Off. Captions are shaped on your device only.',
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+              _label('Share to'),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,

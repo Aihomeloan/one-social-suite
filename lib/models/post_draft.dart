@@ -8,6 +8,7 @@ class PostDraft {
     required this.tone,
     this.mediaPath,
     this.isVideo = false,
+    this.useAi = false,
   });
 
   final String text;
@@ -15,6 +16,7 @@ class PostDraft {
   final Tone tone;
   final String? mediaPath;
   final bool isVideo;
+  final bool useAi;
 
   bool get hasMedia => mediaPath != null;
 }

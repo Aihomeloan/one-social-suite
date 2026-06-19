@@ -5,6 +5,7 @@ import '../models/platform_def.dart';
 import '../models/platform_registry.dart';
 import '../models/post_draft.dart';
 import '../services/caption_formatter.dart';
+import '../services/ai_caption_formatter.dart';
 import '../services/storage_service.dart';
 import '../services/share_service.dart';
 import '../theme/app_theme.dart';
@@ -20,6 +21,7 @@ class PreviewScreen extends StatefulWidget {
 
 class _PreviewScreenState extends State<PreviewScreen> {
   static const CaptionFormatter _formatter = RulesCaptionFormatter();
+  static const AICaptionFormatter _ai = AICaptionFormatter();
   static const ShareService _share = ShareService();
   static const Color _warn = Color(0xFFFF8A3D);
 
@@ -40,6 +42,21 @@ class _PreviewScreenState extends State<PreviewScreen> {
     super.initState();
     _selectedIds = widget.draft.selectedPlatformIds.toSet();
     _syncControllers();
+    if (widget.draft.useAi && _ai.isConfigured) {
+      _enhanceWithAi();
+    }
+  }
+
+
+  Future<void> _enhanceWithAi() async {
+    for (final PlatformDef p in _platforms) {
+      final String ai = await _ai.formatAsync(
+          widget.draft.text, p, widget.draft.tone);
+      if (!mounted) return;
+      if (ai.isNotEmpty && _controllers[p.id] != null) {
+        setState(() => _controllers[p.id]!.text = ai);
+      }
+    }
   }
 
   List<PlatformDef> get _platforms => PlatformRegistry.all
