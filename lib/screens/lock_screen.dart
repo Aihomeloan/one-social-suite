@@ -47,7 +47,7 @@ class _LockScreenState extends State<LockScreen> {
             const Icon(Icons.lock_outline, color: AppColors.gold, size: 40),
             const SizedBox(height: 16),
             const Text(
-              '1SocialSuite is locked',
+              '1Social is locked',
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 17,

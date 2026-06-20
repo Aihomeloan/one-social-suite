@@ -224,7 +224,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
                       const SizedBox(height: 4),
                       const Center(
                         child: Text(
-                          'Write once. Share smarter.',
+                          'Write Once. Share Everywhere.',
                           style: TextStyle(
                               color: AppColors.textMuted, fontSize: 13),
                         ),

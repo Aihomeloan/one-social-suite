@@ -9,7 +9,7 @@ class OneSocialSuiteApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '1SocialSuite',
+      title: '1Social',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       home: const LockGate(child: SplashScreen()),

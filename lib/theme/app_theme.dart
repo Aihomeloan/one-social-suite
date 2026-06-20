@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 1SocialSuite brand theme — black & gold.
+/// 1Social brand theme — black & gold.
 /// Gold values sampled directly from the logo art for an exact match.
 class AppColors {
   AppColors._();

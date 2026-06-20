@@ -50,7 +50,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                 children: <Widget>[
                   const SizedBox(height: 16),
                   const Text(
-                    '1SocialSuite',
+                    '1Social',
                     style: TextStyle(
                       color: AppColors.gold,
                       fontSize: 30,

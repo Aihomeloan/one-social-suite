@@ -1,27 +1,27 @@
 # Privacy Policy
 
-**1SocialSuite**
-*One Platform. Every Connection.*
+**1Social**
+*Write Once. Share Everywhere.*
 
 Effective Date: June 16, 2026
 
 ## 1. Overview
 
-1SocialSuite is a private social media composing tool. It helps you write a single message, shape it for different social platforms, and hand it off to those platforms using your device's built-in sharing features. 1SocialSuite does not create accounts, does not log in to social platforms on your behalf, and does not connect to any social media platform's servers. The app runs locally on your device and keeps your information with you.
+1Social is a private social media composing tool. It helps you write a single message, shape it for different social platforms, and hand it off to those platforms using your device's built-in sharing features. 1Social does not create accounts, does not log in to social platforms on your behalf, and does not connect to any social media platform's servers. The app runs locally on your device and keeps your information with you.
 
 ## 2. How Sharing Works
 
-When you choose to share, 1SocialSuite does one of two things, depending on the platform:
+When you choose to share, 1Social does one of two things, depending on the platform:
 
 - For most platforms (Instagram, X, Facebook, LinkedIn, Pinterest, TikTok), the app passes your prepared caption and any attached photo or video to your device's native share sheet. You then select the destination app and complete the post yourself within that app.
 
 - For Snapchat and Nextdoor, which do not offer a sharing interface, the app copies your caption to your device clipboard and opens the app so you can paste and post it yourself.
 
-Because publishing happens inside each platform's own app, 1SocialSuite cannot see, record, or confirm what is ultimately posted. Once a post is handed off, it is governed entirely by that platform.
+Because publishing happens inside each platform's own app, 1Social cannot see, record, or confirm what is ultimately posted. Once a post is handed off, it is governed entirely by that platform.
 
 ## 3. Information We Process
 
-1SocialSuite does not collect, transmit, sell, or retain your personal information on any server. We operate no servers. The app processes the following only on your device, and only to perform its function:
+1Social does not collect, transmit, sell, or retain your personal information on any server. We operate no servers. The app processes the following only on your device, and only to perform its function:
 
 - The text you type, the tone you select, and any photo or video you attach, used to prepare your post and held on your device.
 
@@ -40,7 +40,7 @@ We do not collect, store, or transmit any of the following:
 
 ## 4. Biometric Authentication
 
-1SocialSuite offers optional biometric authentication (such as Face ID or Touch ID) for local access control. This feature is entirely user-controlled and can be enabled or disabled at any time within the app. A standard device passcode fallback is always available.
+1Social offers optional biometric authentication (such as Face ID or Touch ID) for local access control. This feature is entirely user-controlled and can be enabled or disabled at any time within the app. A standard device passcode fallback is always available.
 
 We do not access, collect, process, or store your biometric data. All biometric authentication is performed exclusively by your device's operating system through native frameworks (such as Apple's LocalAuthentication framework and the Secure Enclave). The app receives only a simple "pass" or "fail" result from the operating system.
 
@@ -50,7 +50,7 @@ Any drafts, share history, and settings you create are stored locally on your de
 
 ## 6. Third-Party Platforms
 
-When you hand a post off to a social platform, that platform's own privacy policy and terms of service govern how it processes your content from that point forward. 1SocialSuite has no control over, and assumes no responsibility for, the data practices of third-party platforms. We encourage you to review the privacy policies of the platforms you use.
+When you hand a post off to a social platform, that platform's own privacy policy and terms of service govern how it processes your content from that point forward. 1Social has no control over, and assumes no responsibility for, the data practices of third-party platforms. We encourage you to review the privacy policies of the platforms you use.
 
 ## 7. Data Sharing and Transfers
 
@@ -58,7 +58,7 @@ We do not sell, share, rent, lease, or transmit any user data to third parties, 
 
 ## 8. Children's Privacy
 
-1SocialSuite is not directed to, or intended for use by, individuals under the age of 13. We do not knowingly collect or process information from children. Because the app collects no personal information from anyone, it does not knowingly collect information from children.
+1Social is not directed to, or intended for use by, individuals under the age of 13. We do not knowingly collect or process information from children. Because the app collects no personal information from anyone, it does not knowingly collect information from children.
 
 ## 9. Changes to This Privacy Policy
 

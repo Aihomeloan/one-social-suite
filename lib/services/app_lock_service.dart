@@ -63,7 +63,7 @@ class AppLockService {
           await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
       if (!canCheck) return true; // no biometrics available: do not lock out
       return await _auth.authenticate(
-        localizedReason: 'Unlock 1SocialSuite',
+        localizedReason: 'Unlock 1Social',
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false,

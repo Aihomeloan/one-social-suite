@@ -91,7 +91,7 @@ class _FallbackSplash extends StatelessWidget {
             const BrandLogo(width: 300, height: 160),
             const SizedBox(height: 18),
             Text(
-              'One Platform. Every Connection.',
+              'Write Once. Share Everywhere.',
               style: TextStyle(
                 color: AppColors.gold.withValues(alpha: 0.85),
                 fontSize: 15,

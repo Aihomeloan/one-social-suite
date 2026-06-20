@@ -3,7 +3,7 @@ import '../theme/app_theme.dart';
 import 'policy_screen.dart';
 import '../services/app_lock_service.dart';
 
-/// Privacy Dashboard - 1SocialSuite's privacy promise made visible.
+/// Privacy Dashboard - 1Social's privacy promise made visible.
 /// Wording is honest and matches what we can actually claim.
 class PrivacyScreen extends StatefulWidget {
   const PrivacyScreen({super.key});
@@ -48,14 +48,14 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               const SizedBox(height: 4),
               const Center(
                 child: Text(
-                  'Write once. Share smarter. Stay private.',
+                  'Write Once. Share Everywhere. Stay private.',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                 ),
               ),
               const SizedBox(height: 24),
 
               // The Promise
-              _sectionLabel('The 1SocialSuite Promise'),
+              _sectionLabel('The 1Social Promise'),
               const SizedBox(height: 8),
               _promiseCard(),
               const SizedBox(height: 24),
@@ -108,7 +108,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                 icon: Icons.face_outlined,
                 title: 'Face ID lock',
                 subtitle: _faceIdEnabled
-                    ? 'Required to open 1SocialSuite'
+                    ? 'Required to open 1Social'
                     : 'Tap to require Face ID on app open',
                 value: _faceIdEnabled,
                 onChanged: (bool v) async {
@@ -377,7 +377,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
         children: <Widget>[
           Text(
             'Sharing uses your phone\'s built-in share sheet. '
-            'Each app handles your post on its own end. 1SocialSuite '
+            'Each app handles your post on its own end. 1Social '
             'cannot see or confirm what is published after handoff.',
             style: TextStyle(
                 color: AppColors.textMuted, fontSize: 12.5, height: 1.45),
