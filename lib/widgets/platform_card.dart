@@ -3,8 +3,7 @@ import '../models/platform_def.dart';
 import '../theme/app_theme.dart';
 
 /// A single platform tile in the Connections grid.
-/// Matches the mockup: dark card, gold border, top glow line, circular
-/// icon, name, and status. The whole card is one reliable tap target.
+/// Compact design -- icon + name + status, fits 3-col grid without wrapping.
 class PlatformCard extends StatelessWidget {
   const PlatformCard({
     super.key,
@@ -25,19 +24,19 @@ class PlatformCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         splashColor: AppColors.gold.withValues(alpha: 0.12),
         highlightColor: AppColors.gold.withValues(alpha: 0.06),
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: borderColor, width: 1.4),
             boxShadow: connected
                 ? <BoxShadow>[
                     BoxShadow(
                       color: AppColors.gold.withValues(alpha: 0.18),
-                      blurRadius: 16,
+                      blurRadius: 12,
                       spreadRadius: 1,
                     ),
                   ]
@@ -45,57 +44,59 @@ class PlatformCard extends StatelessWidget {
           ),
           child: Stack(
             children: <Widget>[
-              // Top glow line.
+              // Top glow line
               Positioned(
                 top: 0,
-                left: 24,
-                right: 24,
+                left: 16,
+                right: 16,
                 child: Container(
-                  height: 2,
+                  height: 1.5,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: <Color>[
                         Colors.transparent,
-                        AppColors.gold
-                            .withValues(alpha: connected ? 0.9 : 0.5),
+                        AppColors.gold.withValues(
+                            alpha: connected ? 0.9 : 0.5),
                         Colors.transparent,
                       ],
                     ),
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: AppColors.gold
-                            .withValues(alpha: connected ? 0.6 : 0.3),
-                        blurRadius: 6,
-                      ),
-                    ],
                   ),
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 14),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     _IconRing(platform: platform, connected: connected),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 8),
                     Text(
                       platform.name,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 17,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       connected ? 'Connected' : 'Tap to connect',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color:
-                            connected ? AppColors.gold : AppColors.textMuted,
-                        fontSize: 13,
-                        fontWeight:
-                            connected ? FontWeight.w600 : FontWeight.w400,
+                        color: connected
+                            ? AppColors.gold
+                            : AppColors.textMuted,
+                        fontSize: 11,
+                        fontWeight: connected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                       ),
                     ),
                   ],
@@ -118,23 +119,23 @@ class _IconRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 64,
-      height: 64,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.gold, width: 1.6),
+        border: Border.all(color: AppColors.gold, width: 1.5),
         color: connected
             ? AppColors.gold.withValues(alpha: 0.08)
             : Colors.transparent,
       ),
       child: Center(
         child: platform.icon != null
-            ? Icon(platform.icon, color: AppColors.gold, size: 28)
+            ? Icon(platform.icon, color: AppColors.gold, size: 22)
             : Text(
                 platform.glyph ?? '?',
                 style: const TextStyle(
                   color: AppColors.gold,
-                  fontSize: 30,
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
               ),

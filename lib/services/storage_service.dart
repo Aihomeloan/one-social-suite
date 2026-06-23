@@ -71,6 +71,10 @@ class StorageService {
     await _history.put(entry.id, entry.toMap());
   }
 
+  Future<void> deleteHistory(String id) async {
+    await _history.delete(id);
+  }
+
   Future<void> clearHistory() async {
     await _history.clear();
   }

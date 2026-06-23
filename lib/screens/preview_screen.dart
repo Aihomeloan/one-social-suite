@@ -1,18 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/history_entry.dart';
 import '../models/platform_def.dart';
 import '../models/platform_registry.dart';
 import '../models/post_draft.dart';
-import '../services/caption_formatter.dart';
 import '../services/ai_caption_formatter.dart';
-import '../services/storage_service.dart';
+import '../services/caption_formatter.dart';
 import '../services/share_service.dart';
+import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
 class PreviewScreen extends StatefulWidget {
   const PreviewScreen({super.key, required this.draft});
-
   final PostDraft draft;
 
   @override
@@ -26,16 +26,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
   static const Color _warn = Color(0xFFFF8A3D);
 
   final PageController _page = PageController();
-
-  // Live, editable selection (starts from the incoming draft).
-  late Set<String> _selectedIds;
-  // Per-platform edited captions, keyed by platform id so edits survive
-  // toggling platforms on/off.
   final Map<String, TextEditingController> _controllers =
       <String, TextEditingController>{};
+  final Map<String, FocusNode> _focusNodes = <String, FocusNode>{};
 
+  late Set<String> _selectedIds;
   int _index = 0;
   bool _busy = false;
+  bool _aiThinking = false;
+  bool _showCopiedOverlay = false;
+  String _copiedPlatformName = '';
 
   @override
   void initState() {
@@ -44,18 +44,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
     _syncControllers();
     if (widget.draft.useAi && _ai.isConfigured) {
       _enhanceWithAi();
-    }
-  }
-
-
-  Future<void> _enhanceWithAi() async {
-    for (final PlatformDef p in _platforms) {
-      final String ai = await _ai.formatAsync(
-          widget.draft.text, p, widget.draft.tone);
-      if (!mounted) return;
-      if (ai.isNotEmpty && _controllers[p.id] != null) {
-        setState(() => _controllers[p.id]!.text = ai);
-      }
     }
   }
 
@@ -71,6 +59,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       if (_selectedIds.contains(p.id)) {
         _controllers.putIfAbsent(
             p.id, () => TextEditingController(text: _formattedFor(p)));
+        _focusNodes.putIfAbsent(p.id, () => FocusNode());
       }
     }
   }
@@ -81,10 +70,18 @@ class _PreviewScreenState extends State<PreviewScreen> {
     for (final TextEditingController c in _controllers.values) {
       c.dispose();
     }
+    for (final FocusNode f in _focusNodes.values) {
+      f.dispose();
+    }
     super.dispose();
   }
 
-  void _dismissKeyboard() => FocusScope.of(context).unfocus();
+  void _dismissKeyboard() {
+    for (final FocusNode f in _focusNodes.values) {
+      f.unfocus();
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
 
   void _toggle(String id) {
     setState(() {
@@ -105,14 +102,28 @@ class _PreviewScreenState extends State<PreviewScreen> {
     setState(() => _controllers[p.id]!.text = _formattedFor(p));
   }
 
-  void _copyCurrent() {
-    final PlatformDef p = _platforms[_index];
-    Clipboard.setData(ClipboardData(text: _controllers[p.id]!.text));
-    _snack('${p.name} caption copied');
+  Future<void> _enhanceWithAi() async {
+    setState(() => _aiThinking = true);
+    for (final PlatformDef p in _platforms) {
+      final String ai =
+          await _ai.formatAsync(widget.draft.text, p, widget.draft.tone);
+      if (!mounted) return;
+      if (ai.isNotEmpty && _controllers[p.id] != null) {
+        setState(() => _controllers[p.id]!.text = ai);
+      }
+    }
+    if (mounted) setState(() => _aiThinking = false);
   }
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _showCopiedBanner(String platformName) {
+    setState(() {
+      _copiedPlatformName = platformName;
+      _showCopiedOverlay = true;
+    });
+    Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _showCopiedOverlay = false);
+    });
+  }
 
   Future<void> _logShare(PlatformDef p, ShareOutcome o) async {
     if (o == ShareOutcome.failed) return;
@@ -138,9 +149,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
       case ShareOutcome.sharedViaSheet:
         return '${p.name}: share sheet opened';
       case ShareOutcome.copiedAndOpened:
-        return '${p.name}: caption copied, paste to post';
+        return '${p.name}: caption copied -- just paste and post';
       case ShareOutcome.appNotFound:
-        return '${p.name} not installed, caption copied';
+        return '${p.name} not installed -- caption copied to clipboard';
       case ShareOutcome.failed:
         return '${p.name}: could not share';
     }
@@ -155,19 +166,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
     await _logShare(p, o);
     if (!mounted) return;
-    _snack(_outcomeMessage(p, o));
-  }
-
-  Future<void> _shareAnywhere() async {
-    _dismissKeyboard();
-    final List<PlatformDef> p = _platforms;
-    final String caption = p.isEmpty
-        ? widget.draft.text
-        : _controllers[p[_index].id]?.text ?? widget.draft.text;
-    await _share.shareAnywhere(
-      caption: caption,
-      mediaPath: widget.draft.mediaPath,
-    );
+    if (o == ShareOutcome.copiedAndOpened || o == ShareOutcome.appNotFound) {
+      _showCopiedBanner(p.name);
+    } else {
+      _snack(_outcomeMessage(p, o));
+    }
   }
 
   Future<void> _shareAll() async {
@@ -181,10 +184,28 @@ class _PreviewScreenState extends State<PreviewScreen> {
       );
       await _logShare(p, o);
       if (!mounted) return;
-      _snack(_outcomeMessage(p, o));
+      if (o == ShareOutcome.copiedAndOpened || o == ShareOutcome.appNotFound) {
+        _showCopiedBanner(p.name);
+        await Future<void>.delayed(const Duration(milliseconds: 2200));
+      } else {
+        _snack(_outcomeMessage(p, o));
+      }
     }
     if (mounted) setState(() => _busy = false);
   }
+
+  Future<void> _shareAnywhere() async {
+    _dismissKeyboard();
+    final List<PlatformDef> pl = _platforms;
+    final String caption = pl.isEmpty
+        ? widget.draft.text
+        : _controllers[pl[_index].id]?.text ?? widget.draft.text;
+    await _share.shareAnywhere(
+        caption: caption, mediaPath: widget.draft.mediaPath);
+  }
+
+  void _snack(String msg) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(msg)));
 
   @override
   Widget build(BuildContext context) {
@@ -201,36 +222,106 @@ class _PreviewScreenState extends State<PreviewScreen> {
               : 'Preview  ${_index + 1} of ${platforms.length}'),
           backgroundColor: AppColors.black,
           foregroundColor: AppColors.gold,
-          actions: <Widget>[
-            TextButton(
-              onPressed: _dismissKeyboard,
-              child: const Text('Done',
-                  style: TextStyle(
-                      color: AppColors.gold, fontWeight: FontWeight.bold)),
-            ),
-          ],
+
         ),
-        body: Column(
+        body: Stack(
           children: <Widget>[
-            _platformChips(),
-            if (platforms.isEmpty)
-              Expanded(child: _emptyState())
-            else ...<Widget>[
-              _dots(platforms),
-              Expanded(
-                child: PageView.builder(
-                  controller: _page,
-                  itemCount: platforms.length,
-                  onPageChanged: (int i) => setState(() {
-                    _dismissKeyboard();
-                    _index = i;
-                  }),
-                  itemBuilder: (BuildContext context, int i) =>
-                      _card(platforms[i]),
+            Column(
+              children: <Widget>[
+                _platformChips(),
+                // AI thinking banner
+                if (_aiThinking)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    color: AppColors.gold.withValues(alpha: 0.12),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.gold),
+                        ),
+                        SizedBox(width: 10),
+                        Text('AI is enhancing your captions...',
+                            style: TextStyle(
+                                color: AppColors.gold, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                if (platforms.isEmpty)
+                  Expanded(child: _emptyState())
+                else ...<Widget>[
+                  _dots(platforms),
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _page,
+                      itemCount: platforms.length,
+                      onPageChanged: (int i) => setState(() {
+                        _dismissKeyboard();
+                        _index = i;
+                      }),
+                      itemBuilder: (BuildContext context, int i) =>
+                          _card(platforms[i]),
+                    ),
+                  ),
+                  _bottomBar(platforms.length),
+                ],
+              ],
+            ),
+            // Prominent "Caption Copied" overlay
+            if (_showCopiedOverlay)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 40),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 28, vertical: 22),
+                      decoration: BoxDecoration(
+                        color: AppColors.black,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.gold, width: 2),
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            color: AppColors.gold.withValues(alpha: 0.3),
+                            blurRadius: 30,
+                            spreadRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          const Icon(Icons.check_circle,
+                              color: AppColors.gold, size: 48),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Caption Copied!',
+                            style: TextStyle(
+                              color: AppColors.gold,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Open $_copiedPlatformName and paste\nyour message to post.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              _shareAllBar(platforms.length),
-            ],
           ],
         ),
       ),
@@ -277,8 +368,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         style: TextStyle(
                             color: on ? AppColors.gold : Colors.white,
                             fontSize: 13,
-                            fontWeight:
-                                on ? FontWeight.w700 : FontWeight.w400)),
+                            fontWeight: on
+                                ? FontWeight.w700
+                                : FontWeight.w400)),
                   ),
                 ),
               );
@@ -305,7 +397,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                     fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
             Text(
-              'Tap a platform above to see your message shaped for it and share.',
+              'Tap a platform above to see your message shaped for it.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: AppColors.textMuted, fontSize: 14, height: 1.4),
@@ -316,7 +408,29 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  Widget _shareAllBar(int count) {
+  Widget _dots(List<PlatformDef> platforms) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List<Widget>.generate(platforms.length, (int i) {
+          final bool active = i == _index;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: active ? 22 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: active ? AppColors.gold : AppColors.border,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _bottomBar(int count) {
     return SafeArea(
       top: false,
       child: Padding(
@@ -369,28 +483,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  Widget _dots(List<PlatformDef> platforms) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List<Widget>.generate(platforms.length, (int i) {
-          final bool active = i == _index;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: active ? 22 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: active ? AppColors.gold : AppColors.border,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
   Widget _card(PlatformDef p) {
     final TextEditingController ctrl = _controllers[p.id]!;
     final int len = ctrl.text.length;
@@ -417,16 +509,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
           children: <Widget>[
             Row(
               children: <Widget>[
-                _icon(p),
+                _iconRing(p),
                 const SizedBox(width: 12),
-                Text(
-                  p.name,
-                  style: const TextStyle(
-                    color: AppColors.gold,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text(p.name,
+                    style: const TextStyle(
+                        color: AppColors.gold,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold)),
                 const Spacer(),
                 Container(
                   padding:
@@ -435,15 +524,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
                     color: AppColors.black,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: p.isOpenAndCopy
-                            ? AppColors.border
-                            : AppColors.gold.withValues(alpha: 0.5)),
+                        color: AppColors.gold.withValues(alpha: 0.5)),
                   ),
-                  child: Text(
-                    p.isOpenAndCopy ? 'Open + copy' : 'Share sheet',
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 11),
-                  ),
+                  child: const Text('Copy + Open',
+                      style: TextStyle(
+                          color: AppColors.textMuted, fontSize: 11)),
                 ),
               ],
             ),
@@ -457,6 +542,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
               padding: const EdgeInsets.all(14),
               child: TextField(
                 controller: ctrl,
+                focusNode: _focusNodes[p.id],
                 maxLines: null,
                 minLines: 4,
                 keyboardType: TextInputType.multiline,
@@ -465,7 +551,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 style: const TextStyle(
                     color: Colors.white, fontSize: 15, height: 1.4),
                 cursorColor: AppColors.gold,
-                decoration: const InputDecoration.collapsed(hintText: ''),
+                decoration:
+                    const InputDecoration.collapsed(hintText: ''),
               ),
             ),
             const SizedBox(height: 10),
@@ -482,9 +569,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       ? '$len / ${p.charLimit}'
                       : '$len / ${p.charLimit} over limit',
                   style: TextStyle(
-                    color: fits ? AppColors.textMuted : _warn,
-                    fontSize: 13,
-                  ),
+                      color: fits ? AppColors.textMuted : _warn,
+                      fontSize: 13),
                 ),
                 const Spacer(),
                 if (ctrl.text != _formattedFor(p))
@@ -500,7 +586,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
               children: <Widget>[
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _copyCurrent,
+                    onPressed: () {
+                      Clipboard.setData(
+                          ClipboardData(text: ctrl.text));
+                      _showCopiedBanner(p.name);
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.gold),
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -519,9 +609,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       backgroundColor: AppColors.gold,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    icon: const Icon(Icons.ios_share,
+                    icon: const Icon(Icons.open_in_new,
                         color: Colors.black, size: 18),
-                    label: const Text('Share',
+                    label: const Text('Open',
                         style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.bold)),
@@ -529,13 +619,22 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'Caption copied to clipboard -- paste in ${p.name} to post',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: AppColors.textMuted, fontSize: 11),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _icon(PlatformDef p) {
+  Widget _iconRing(PlatformDef p) {
     return Container(
       width: 40,
       height: 40,
@@ -549,7 +648,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             : Text(p.glyph ?? '?',
                 style: const TextStyle(
                     color: AppColors.gold,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w800)),
       ),
     );

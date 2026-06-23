@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'platform_def.dart';
 
-/// The canonical v1 set of 8 platforms, in mockup display order.
+/// 1Social platform registry -- 9 platforms, all using copy+open handoff.
+/// Copy+open is more reliable than the iOS share sheet for social apps:
+/// it copies the shaped caption to clipboard and opens the target app
+/// directly, so the user just pastes and posts. No share-sheet roulette.
 class PlatformRegistry {
   PlatformRegistry._();
 
@@ -9,15 +12,15 @@ class PlatformRegistry {
     PlatformDef(
       id: 'instagram',
       name: 'Instagram',
-      shareMode: ShareMode.shareSheet,
+      shareMode: ShareMode.openAndCopy,
       charLimit: 2200,
       icon: Icons.camera_alt_outlined,
-      deepLinkScheme: 'instagram://',
+      deepLinkScheme: 'instagram://app',
     ),
     PlatformDef(
       id: 'x',
       name: 'X',
-      shareMode: ShareMode.shareSheet,
+      shareMode: ShareMode.openAndCopy,
       charLimit: 280,
       glyph: 'X',
       deepLinkScheme: 'twitter://',
@@ -25,7 +28,7 @@ class PlatformRegistry {
     PlatformDef(
       id: 'pinterest',
       name: 'Pinterest',
-      shareMode: ShareMode.shareSheet,
+      shareMode: ShareMode.openAndCopy,
       charLimit: 500,
       icon: Icons.push_pin_outlined,
       deepLinkScheme: 'pinterest://',
@@ -43,13 +46,13 @@ class PlatformRegistry {
       name: 'Snapchat',
       shareMode: ShareMode.openAndCopy,
       charLimit: 250,
-      glyph: '👻',
+      glyph: 'SC',
       deepLinkScheme: 'snapchat://',
     ),
     PlatformDef(
       id: 'tiktok',
       name: 'TikTok',
-      shareMode: ShareMode.shareSheet,
+      shareMode: ShareMode.openAndCopy,
       charLimit: 2200,
       icon: Icons.music_note,
       deepLinkScheme: 'tiktok://',
@@ -57,7 +60,7 @@ class PlatformRegistry {
     PlatformDef(
       id: 'linkedin',
       name: 'LinkedIn',
-      shareMode: ShareMode.shareSheet,
+      shareMode: ShareMode.openAndCopy,
       charLimit: 3000,
       glyph: 'in',
       deepLinkScheme: 'linkedin://',
@@ -65,10 +68,18 @@ class PlatformRegistry {
     PlatformDef(
       id: 'facebook',
       name: 'Facebook',
-      shareMode: ShareMode.shareSheet,
+      shareMode: ShareMode.openAndCopy,
       charLimit: 63206,
       icon: Icons.facebook,
       deepLinkScheme: 'fb://',
+    ),
+    PlatformDef(
+      id: 'threads',
+      name: 'Threads',
+      shareMode: ShareMode.openAndCopy,
+      charLimit: 500,
+      glyph: '@',
+      deepLinkScheme: 'barcelona://',
     ),
   ];
 

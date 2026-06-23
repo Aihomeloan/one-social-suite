@@ -3,7 +3,6 @@ import '../models/platform_def.dart';
 import '../models/platform_registry.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/brand_logo.dart';
 import '../widgets/platform_card.dart';
 
 class ConnectionsScreen extends StatefulWidget {
@@ -14,8 +13,6 @@ class ConnectionsScreen extends StatefulWidget {
 }
 
 class _ConnectionsScreenState extends State<ConnectionsScreen> {
-  // In-memory connection state for now. Session 5 persists this to Hive
-  // so connections survive an app restart.
   final Set<String> _connected = <String>{};
 
   @override
@@ -37,8 +34,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final int connectedCount = _connected.length;
-    final int total = PlatformRegistry.count;
+    final double screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
       color: AppColors.black,
@@ -48,39 +44,26 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
             SliverToBoxAdapter(
               child: Column(
                 children: <Widget>[
+                  const SizedBox(height: 12),
+                  // New vertical logo -- replaces text title + old BrandLogo
+                  Image.asset(
+                    'assets/images/logo_header.png',
+                    width: screenWidth * 0.82,
+                    fit: BoxFit.contain,
+                  ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '1Social',
-                    style: TextStyle(
-                      color: AppColors.gold,
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '$connectedCount of $total connected',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const BrandLogo(width: 440, height: 233),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
               sliver: SliverGrid(
                 gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 0.88,
+                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 175,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 0.92,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
